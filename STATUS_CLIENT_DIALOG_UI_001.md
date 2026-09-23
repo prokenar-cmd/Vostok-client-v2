@@ -1,51 +1,53 @@
 # VOSTOK CLIENT V2 — DIALOG UI 001
 
 ## Base
-- New client base supplied as `Java1.zip` + `Java2.zip`.
-- This branch is the first VOSTOK client-v2 UI Candidate.
-- Old VOSTOK client repo is not the base for this branch.
+- Exact current Azure Mobile source supplied by user as `Java1.zip` + `Java2.zip`.
+- Application/package: `ru.azure.games`.
+- Old VOSTOK launcher/client repository is NOT the source base for this Candidate.
+- Current work branch: `client-v2-dialog-ui-001`.
+
+## Exact dialog implementation found
+- `app/src/main/java/ru/azure/games/gui/dialogs/Dialog.java`
+- `app/src/main/java/ru/azure/games/gui/dialogs/DialogAdapter.java`
+- `app/src/main/res/layout/dialog_old.xml`
+- `app/src/main/res/layout/dialog_item_old.xml`
 
 ## Goal
-Unify all SA-MP dialogs to the visual language of the supplied "Панель лидера" reference:
-- dark rounded modal card;
-- clean title and content spacing;
-- consistent list rows;
-- fixed dialog geometry (no wrap-content jumping);
+All standard server SA-MP dialogs use one VOSTOK visual language based on the supplied "Панель лидера" reference:
+- dark rounded centered modal;
+- clean title/content/list geometry;
 - VOSTOK orange primary action;
 - dark secondary action;
-- orange scrollbar;
-- no Azure/BR blue blob/gradient;
-- cleaner modal dim background;
-- stable list width for repeated "Пусто" rows and tablists.
+- orange narrow scrollbar;
+- no Azure blue gradient/blob;
+- stable aligned rows for lists and tablists.
 
-## Implemented in patcher
-`tools/apply_vostok_dialog_ui.py`:
-- auto-detects current `dialog.xml`, `dialog_item.xml`, `DialogManager.java`, `DialogAdapter.java`;
-- preserves the current CustomRecyclerView class name;
-- replaces donor dialog surface with VOSTOK resources;
-- fixes `loadSizes()` so server text does not resize/collapse the dialog;
-- forces list rows to match the dialog card width;
-- removes donor blue scrollbar/gradient from the dialog surface.
+## Candidate changes prepared against the exact Azure source
+1. Replaced active `dialog_old.xml` shell while preserving the existing view IDs and server response contract.
+2. Reworked `dialog_item_old.xml` to fixed full-width rows.
+3. Added VOSTOK dialog drawables with primary orange `#F2642D`.
+4. Removed active dependence on donor blue dialog background/scrollbar/button assets.
+5. Fixed RecyclerView recycled-column bleed: all row fields are reset before binding.
+6. Fixed donor ViewHolder bug that skipped `item_field1`, which shifted simple LIST rows and TABLIST columns.
+7. TABLIST header row is now explicitly shown only for `DIALOG_STYLE_TABLIST_HEADER`.
+8. Input/list/msgbox remain routed through the same central `Dialog.java`.
 
-## VOSTOK accent
-Primary action: `#F2642D`.
+## Local static gate
+PASS:
+- all modified/new XML parses;
+- all referenced dimen resources exist;
+- Java brace balance;
+- no donor blue constants in active VOSTOK dialog resources.
 
-## Gate
-1. Patch script syntax check — GitHub Actions.
-2. Import exact Azure client source.
-3. Apply patch against source.
-4. Full Android/JNI build in GitHub Actions.
-5. Device smoke:
-   - list dialog;
-   - long list with scrollbar;
-   - TABLIST/TABLIST_HEADERS;
-   - MSGBOX;
-   - INPUT/PASSWORD;
-   - one-button and two-button dialogs;
-   - repeated "Пусто" inventory rows;
-   - documents/licenses dialog.
-6. Only after device PASS can this become client MASTER.
+## Build/device promotion gate
+Still required:
+- exact Azure source imported into this GitHub repo;
+- JNI + Android GitHub Actions build PASS;
+- device smoke: LIST, long LIST, TABLIST, TABLIST_HEADERS, MSGBOX, INPUT, PASSWORD;
+- repeated `Пусто` inventory list;
+- documents/licenses dialog;
+- one-button and two-button dialogs.
 
 ## Status
-CURRENT CANDIDATE — DIALOG_UI_001
+CURRENT CLIENT CANDIDATE — DIALOG_UI_001
 Promotion: NOT YET.
