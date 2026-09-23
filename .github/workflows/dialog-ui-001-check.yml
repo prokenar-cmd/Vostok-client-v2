@@ -1,0 +1,38 @@
+name: VOSTOK Client V2 - Dialog UI 001 Check
+
+on:
+  push:
+    branches:
+      - client-v2-dialog-ui-001
+  workflow_dispatch:
+
+jobs:
+  validate-dialog-patcher:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Syntax check
+        run: python -m py_compile tools/apply_vostok_dialog_ui.py
+
+      - name: Check VOSTOK dialog contract
+        run: |
+          grep -q 'VOSTOK_DIALOG_UI_001' tools/apply_vostok_dialog_ui.py
+          grep -q 'vostok_dialog_button_primary' tools/apply_vostok_dialog_ui.py
+          grep -q 'vostok_dialog_scroll_thumb' tools/apply_vostok_dialog_ui.py
+          grep -q '#F2642D' tools/apply_vostok_dialog_ui.py
+          ! grep -q 'button_br_red' tools/apply_vostok_dialog_ui.py
+
+      - name: Source availability note
+        run: |
+          if [ -d app ] || [ -d Java ] || [ -f settings.gradle ]; then
+            echo "Client source is present in repository."
+          else
+            echo "Client source has not been imported yet; patcher validation only."
+          fi
