@@ -16,7 +16,7 @@
 All standard server SA-MP dialogs use one VOSTOK visual language based on the supplied "Панель лидера" reference:
 - dark rounded centered modal;
 - clean title/content/list geometry;
-- VOSTOK orange primary action;
+- VOSTOK orange primary action (#FF6B2C);
 - dark secondary action;
 - orange narrow scrollbar;
 - no Azure blue gradient/blob;
@@ -25,7 +25,7 @@ All standard server SA-MP dialogs use one VOSTOK visual language based on the su
 ## Candidate changes prepared against the exact Azure source
 1. Replaced active `dialog_old.xml` shell while preserving the existing view IDs and server response contract.
 2. Reworked `dialog_item_old.xml` to fixed full-width rows.
-3. Added VOSTOK dialog drawables with primary orange `#F2642D`.
+3. Added VOSTOK dialog drawables with primary orange `#FF6B2C`.
 4. Removed active dependence on donor blue dialog background/scrollbar/button assets.
 5. Fixed RecyclerView recycled-column bleed: all row fields are reset before binding.
 6. Fixed donor ViewHolder bug that skipped `item_field1`, which shifted simple LIST rows and TABLIST columns.
