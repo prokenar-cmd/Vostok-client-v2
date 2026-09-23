@@ -1,4 +1,4 @@
-name: VOSTOK Client V2 - Dialog UI 001 Check
+name: VOSTOK Client V2 - Dialog UI 001 Prep
 
 on:
   push:
@@ -7,32 +7,25 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate-dialog-patcher:
+  candidate-prep:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-
-      - name: Syntax check
-        run: python -m py_compile tools/apply_vostok_dialog_ui.py
-
-      - name: Check VOSTOK dialog contract
+      - name: Validate candidate status
         run: |
-          grep -q 'VOSTOK_DIALOG_UI_001' tools/apply_vostok_dialog_ui.py
-          grep -q 'vostok_dialog_button_primary' tools/apply_vostok_dialog_ui.py
-          grep -q 'vostok_dialog_scroll_thumb' tools/apply_vostok_dialog_ui.py
-          grep -q '#F2642D' tools/apply_vostok_dialog_ui.py
-          ! grep -q 'button_br_red' tools/apply_vostok_dialog_ui.py
+          test -f STATUS_CLIENT_DIALOG_UI_001.md
+          grep -q 'Exact current Azure Mobile source' STATUS_CLIENT_DIALOG_UI_001.md
+          grep -q 'Dialog.java' STATUS_CLIENT_DIALOG_UI_001.md
+          grep -q 'DialogAdapter.java' STATUS_CLIENT_DIALOG_UI_001.md
+          grep -q 'DIALOG_UI_001' STATUS_CLIENT_DIALOG_UI_001.md
+          grep -q 'Promotion: NOT YET' STATUS_CLIENT_DIALOG_UI_001.md
 
-      - name: Source availability note
+      - name: Detect exact client source import
         run: |
-          if [ -d app ] || [ -d Java ] || [ -f settings.gradle ]; then
-            echo "Client source is present in repository."
+          if [ -f app/src/main/java/ru/azure/games/gui/dialogs/Dialog.java ]; then
+            echo 'Exact Azure source is present: full UI/build gate can run next.'
           else
-            echo "Client source has not been imported yet; patcher validation only."
+            echo 'Exact Azure source import is pending. This is a prep gate only.'
           fi
