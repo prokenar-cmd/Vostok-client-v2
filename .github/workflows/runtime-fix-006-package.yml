@@ -1,0 +1,63 @@
+name: VOSTOK Runtime Fix 006 Package
+
+on:
+  push:
+    branches:
+      - runtime-fix-006
+  workflow_dispatch:
+
+jobs:
+  validate-and-package:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate PowerShell syntax
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $files = @(
+            "runtime-fix-006/1_APPLY_VOSTOK_CLIENT_RUNTIME_FIX_006.ps1",
+            "server-runtime-fix-006d/1_APPLY_SERVER_RUNTIME_FIX_006D.ps1"
+          )
+          foreach ($file in $files) {
+            Write-Host "Parsing $file"
+            [void][scriptblock]::Create((Get-Content -LiteralPath $file -Raw))
+          }
+          Write-Host "PASS: PowerShell syntax"
+
+      - name: Verify 005A regression guard
+        shell: powershell
+        run: |
+          $p = Get-Content "runtime-fix-006/1_APPLY_VOSTOK_CLIENT_RUNTIME_FIX_006.ps1" -Raw
+          if ($p -notmatch "FIX 005A regression detected") { throw "005A guard missing" }
+          if ($p -notmatch "public View btn_phone") { throw "btn_phone View fix missing" }
+          Write-Host "PASS: 005A preserved"
+
+      - name: Package
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force package | Out-Null
+          Copy-Item runtime-fix-006 package/client-runtime-fix-006 -Recurse
+          Copy-Item server-runtime-fix-006d package/server-runtime-fix-006d -Recurse
+          @"
+          VOSTOK RP RUNTIME FIX BUNDLE 006
+
+          CLIENT:
+          client-runtime-fix-006\0_APPLY_CLIENT_FIX_006.cmd
+
+          SERVER:
+          server-runtime-fix-006d\0_APPLY_SERVER_FIX_006D.cmd
+
+          Both patchers make backups before source changes.
+          Compile + runtime smoke required before promotion.
+          "@ | Set-Content package/README_FIRST.txt -Encoding UTF8
+          Compress-Archive -Path package\* -DestinationPath VOSTOK_RUNTIME_FIX_BUNDLE_006.zip -Force
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: VOSTOK_RUNTIME_FIX_BUNDLE_006
+          path: VOSTOK_RUNTIME_FIX_BUNDLE_006.zip
+          if-no-files-found: error
