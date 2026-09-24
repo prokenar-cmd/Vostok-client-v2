@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $root = Join-Path $env:USERPROFILE "Desktop\client_src"
@@ -734,7 +734,7 @@ if (Test-Path $menuPath) {
 
 Get-ChildItem (Join-Path $res "layout") -Filter "*.xml" -File -ErrorAction SilentlyContinue | ForEach-Object {
     $t = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8
-    if ($t -match 'Инвентар|inventory|Рюкзак|backpack') {
+    if ($t -match '(?i)inventory|backpack') {
         $new = $t -replace 'android:columnCount="5"', 'android:columnCount="4"'
         if ($new -ne $t) {
             Backup-File $_.FullName
