@@ -528,12 +528,12 @@ if (Test-Path $phoneXml) {
     $xml = [regex]::Replace(
         $xml,
         '(?s)(android:id="@\+id/phone_screen".{0,400}?android:layout_width=")\d+dp(")',
-        '1156dp$2',
+        '${1}156dp$2',
         1)
     $xml = [regex]::Replace(
         $xml,
         '(?s)(android:id="@\+id/phone_screen".{0,500}?android:layout_height=")\d+dp(")',
-        '1270dp$2',
+        '${1}270dp$2',
         1)
     Write-Utf8NoBom $phoneXml $xml
 }
@@ -726,8 +726,8 @@ if (Test-Path $menuPath) {
         }
     }
 
-    $menu = $menu -replace '(?m)(TOTAL_SLOTS\s*=\s*)30(\s*;)', '120$2'
-    $menu = $menu -replace '(?m)(EXTRA_SLOTS\s*=\s*)10(\s*;)', '10$2'
+    $menu = $menu -replace '(?m)(TOTAL_SLOTS\s*=\s*)30(\s*;)', '${1}20$2'
+    $menu = $menu -replace '(?m)(EXTRA_SLOTS\s*=\s*)10(\s*;)', '${1}0$2'
     $menu = $menu -replace '\.setColumnCount\(\s*5\s*\)', '.setColumnCount(4)'
     Write-Utf8NoBom $menuPath $menu
 }
@@ -773,7 +773,7 @@ Get-ChildItem (Join-Path $res "layout") -Filter "*.xml" -File -ErrorAction Silen
         $new = [regex]::Replace(
             $t,
             '((?:app:srcCompat|android:src)\s*=\s*")@drawable/[^"]+(")',
-            '1@drawable/vostok_inventory_silhouette_006$2',
+            '${1}@drawable/vostok_inventory_silhouette_006$2',
             1)
         if ($new -ne $t) {
             Backup-File $_.FullName
