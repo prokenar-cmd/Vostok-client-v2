@@ -1,0 +1,39 @@
+name: KRANIN Recovery Probe
+
+on:
+  push:
+    paths:
+      - ".github/workflows/kranin-recovery-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Probe KRANIN public endpoints
+        shell: bash
+        run: |
+          set -u
+          urls=(
+            "https://api.kraninshop.ru/"
+            "https://api.kraninshop.ru/client/"
+            "https://api.kraninshop.ru/client"
+            "https://info.kraninshop.ru/client/ks_4f737971120b42d683cd3269a56e2b2c/servers.json"
+          )
+          for url in "${urls[@]}"; do
+            echo
+            echo "===== URL: $url ====="
+            rm -f /tmp/body /tmp/headers
+            code=$(curl -L -sS --connect-timeout 10 --max-time 30 -D /tmp/headers -o /tmp/body -w '%{http_code}' "$url" || true)
+            echo "HTTP=$code"
+            sed -n '1,30p' /tmp/headers || true
+            echo "--- body size/type ---"
+            wc -c /tmp/body || true
+            file /tmp/body || true
+            echo "--- body preview ---"
+            head -c 4000 /tmp/body 2>/dev/null || true
+            echo
+          done
