@@ -1,0 +1,52 @@
+name: KRANIN Launcher Locate
+
+on:
+  push:
+    paths:
+      - ".github/workflows/kranin-launcher-locate.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  locate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Locate exact launcher resource
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L -sS --fail "https://api.kraninshop.ru/client/patch_index.json" -o patch_index.json
+
+          python3 - <<'PY' > launchers.tsv
+          import json
+          data=json.load(open("patch_index.json","r",encoding="utf-8"))
+          found=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  if x.get("path")=="launcher.apk":
+                      found.append((x.get("filesize"),x.get("link"),x.get("rule_file"),x.get("crc_xxhashct")))
+                  for v in x.values(): walk(v)
+              elif isinstance(x,list):
+                  for v in x: walk(v)
+          walk(data)
+          seen=set()
+          for row in found:
+              if row not in seen:
+                  seen.add(row)
+                  print("\t".join("" if v is None else str(v) for v in row))
+          PY
+
+          echo "=== launcher.apk entries ==="
+          cat launchers.tsv || true
+
+          echo "=== candidate endpoints ==="
+          while IFS=$'\t' read -r size link rule crc; do
+            [ -n "$link" ] || continue
+            for url in               "https://api.kraninshop.ru/$link/launcher.apk"               "https://api.kraninshop.ru/client/$link/launcher.apk"               "https://main.test.blackrussian.games/$link/launcher.apk"
+            do
+              echo "--- size=$size rule=$rule url=$url"
+              curl -sS -L -I --connect-timeout 10 --max-time 30 "$url" |                 grep -Ei '^(HTTP/|content-length:|content-type:|location:|etag:)' | tail -n 12 || true
+            done
+          done < launchers.tsv
