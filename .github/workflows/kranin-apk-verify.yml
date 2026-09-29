@@ -1,0 +1,24 @@
+name: KRANIN APK Verify
+
+on:
+  push:
+    paths:
+      - ".github/workflows/kranin-apk-verify.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Fetch launcher package and verify checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 --connect-timeout 15 --max-time 600             "https://api.kraninshop.ru/client/launcher.apk"             -o launcher.apk
+          ls -lh launcher.apk
+          file launcher.apk
+          sha256sum launcher.apk
+          test "$(sha256sum launcher.apk | awk '{print $1}')" = "3e4c7ec0bd5030ba15af4401886c9700eb54ef237e53a1195383cc79f2fd34cc"
