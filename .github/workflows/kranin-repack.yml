@@ -2,6 +2,9 @@ name: KRANIN Repack
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - "KRANIN_RECOVERED_SOURCE_001.zip"
 
 permissions:
   contents: read
