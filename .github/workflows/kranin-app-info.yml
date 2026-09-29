@@ -1,0 +1,26 @@
+name: KRANIN App Info Probe
+
+on:
+  push:
+    paths:
+      - ".github/workflows/kranin-app-info.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch launcher metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in app_info.json app-config.json update_manager_feature_flag.json patch_index.json; do
+            echo "===== $f ====="
+            curl -L -sS --fail "https://api.kraninshop.ru/client/$f" -o "/tmp/$f" || { echo "NOT FOUND"; continue; }
+            wc -c "/tmp/$f"
+            cat "/tmp/$f"
+            echo
+          done
