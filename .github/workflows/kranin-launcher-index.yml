@@ -1,0 +1,46 @@
+name: KRANIN Launcher Index
+
+on:
+  push:
+    paths:
+      - ".github/workflows/kranin-launcher-index.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Print all launcher.apk records
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L -sS --fail "https://api.kraninshop.ru/client/patch_index.json" -o patch_index.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open("patch_index.json","r",encoding="utf-8"))
+          out=[]
+          def walk(x, trail="root"):
+              if isinstance(x,dict):
+                  if x.get("path")=="launcher.apk":
+                      out.append({
+                        "trail": trail,
+                        "filesize": x.get("filesize"),
+                        "link": x.get("link"),
+                        "rule_file": x.get("rule_file"),
+                        "crc_xxhashct": x.get("crc_xxhashct")
+                      })
+                  for k,v in x.items(): walk(v, f"{trail}.{k}")
+              elif isinstance(x,list):
+                  for i,v in enumerate(x): walk(v, f"{trail}[{i}]")
+          walk(data)
+          seen=set()
+          for x in out:
+              key=(x["filesize"],x["link"],x["rule_file"],x["crc_xxhashct"])
+              if key in seen: continue
+              seen.add(key)
+              print(json.dumps(x,ensure_ascii=False,separators=(",",":")))
+          print("COUNT",len(seen))
+          PY
