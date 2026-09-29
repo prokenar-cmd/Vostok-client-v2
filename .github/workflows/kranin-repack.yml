@@ -1,0 +1,67 @@
+name: KRANIN Repack
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repack:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Repack recovered payload
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:GITHUB_WORKSPACE "KRANIN_RECOVERED_SOURCE_001.zip"
+          if (!(Test-Path $zip)) { throw "KRANIN_RECOVERED_SOURCE_001.zip missing" }
+          $sha = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($sha -ne "ddf440ba71317da89ad82109d3c70bcec03781c4339eaee0a87ba01cdf61ad76") { throw "source hash mismatch" }
+          Expand-Archive $zip "$env:GITHUB_WORKSPACE\work" -Force
+          $root = "$env:GITHUB_WORKSPACE\work\KRANIN_RECOVERED_SOURCE_001"
+          $py = @'
+          from pathlib import Path
+          import zipfile,json
+          root=Path(r"__ROOT__")
+          payload=root/"prebuilt_apk_payload"
+          meta=json.loads((root/"rebuild/ZIP_METADATA.json").read_text(encoding="utf-8"))
+          out=root/"build/KRANIN_RECOVERED_UNSIGNED.apk"
+          out.parent.mkdir(parents=True,exist_ok=True)
+          with zipfile.ZipFile(out,"w",allowZip64=True) as z:
+              for rel,m in meta.items():
+                  p=payload/rel
+                  if not p.is_file():
+                      raise SystemExit("missing "+rel)
+                  zi=zipfile.ZipInfo(rel,tuple(m.get("date_time",[1980,1,1,0,0,0])))
+                  zi.compress_type=int(m.get("compress_type",zipfile.ZIP_DEFLATED))
+                  zi.external_attr=int(m.get("external_attr",0))
+                  z.writestr(zi,p.read_bytes())
+          print(out)
+          '@
+          $py = $py.Replace("__ROOT__", $root.Replace("\","\\"))
+          $py | Set-Content "$env:RUNNER_TEMP\repack.py" -Encoding UTF8
+          python "$env:RUNNER_TEMP\repack.py"
+
+          $sdk=$env:ANDROID_SDK_ROOT
+          $bt=Get-ChildItem "$sdk\build-tools" -Directory | Sort-Object {[version]$_.Name} -Descending | Select-Object -First 1
+          if (!$bt) { throw "Android build-tools missing" }
+          $unsigned="$root\build\KRANIN_RECOVERED_UNSIGNED.apk"
+          $aligned="$root\build\KRANIN_RECOVERED_ALIGNED.apk"
+          $signed="$root\build\KRANIN_RECOVERED_DEBUG.apk"
+          & "$($bt.FullName)\zipalign.exe" -f -p 4 $unsigned $aligned
+          if ($LASTEXITCODE) { throw "zipalign failed" }
+          $ks="$env:RUNNER_TEMP\recovered-debug.keystore"
+          keytool -genkeypair -keystore $ks -storepass android -keypass android -alias recovered -keyalg RSA -keysize 3072 -validity 3650 -dname "CN=KRANIN RECOVERED DEBUG,O=VOSTOK RP,C=RU"
+          & "$($bt.FullName)\apksigner.bat" sign --ks $ks --ks-pass pass:android --key-pass pass:android --ks-key-alias recovered --out $signed $aligned
+          if ($LASTEXITCODE) { throw "apksigner failed" }
+          & "$($bt.FullName)\apksigner.bat" verify --verbose $signed
+          if ($LASTEXITCODE) { throw "signature verify failed" }
+          "APK=$signed" | Out-File $env:GITHUB_ENV -Append
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KRANIN_RECOVERED_DEBUG
+          path: ${{ env.APK }}
+          if-no-files-found: error
