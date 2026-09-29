@@ -11,12 +11,13 @@ permissions:
 jobs:
   locate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
-      - name: Locate exact launcher resource
+      - name: Locate purchased launcher record
         shell: bash
         run: |
           set -euo pipefail
+          TARGET_SIZE=116472720
           curl -L -sS --fail "https://api.kraninshop.ru/client/patch_index.json" -o patch_index.json
 
           python3 - <<'PY' > launchers.tsv
@@ -38,15 +39,19 @@ jobs:
                   print("\t".join("" if v is None else str(v) for v in row))
           PY
 
-          echo "=== launcher.apk entries ==="
-          cat launchers.tsv || true
-
-          echo "=== candidate endpoints ==="
-          while IFS=$'\t' read -r size link rule crc; do
-            [ -n "$link" ] || continue
-            for url in               "https://api.kraninshop.ru/$link/launcher.apk"               "https://api.kraninshop.ru/client/$link/launcher.apk"               "https://main.test.blackrussian.games/$link/launcher.apk"
-            do
-              echo "--- size=$size rule=$rule url=$url"
-              curl -sS -L -I --connect-timeout 10 --max-time 30 "$url" |                 grep -Ei '^(HTTP/|content-length:|content-type:|location:|etag:)' | tail -n 12 || true
-            done
-          done < launchers.tsv
+          echo "=== ALL UNIQUE launcher.apk RECORDS ==="
+          cat launchers.tsv
+          echo "=== EXACT SIZE $TARGET_SIZE ==="
+          grep "^$TARGET_SIZE"$'\t' launchers.tsv || true
+          echo "=== CLOSEST SIZES ==="
+          python3 - <<'PY'
+          target=116472720
+          rows=[]
+          for line in open("launchers.tsv",encoding="utf-8"):
+              p=line.rstrip("\n").split("\t")
+              try: size=int(p[0])
+              except: continue
+              rows.append((abs(size-target),line.rstrip()))
+          for _,line in sorted(rows)[:10]:
+              print(line)
+          PY
